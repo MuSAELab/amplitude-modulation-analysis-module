@@ -59,7 +59,7 @@ def conv_m(a, b, mode='full'):
     
     # allocate space for result
     if mode == 'same':
-        c = np.zeros((np.maximum(siz_a , siz_b), col_b) , dtype = complex)
+        c = np.zeros((siz_a, col_b) , dtype = complex)
     elif mode == 'full':
         N = siz_a + siz_b - 1
         c = np.zeros((N , col_b), dtype = complex)
@@ -109,7 +109,7 @@ def epoching(data, samples_epoch, samples_overlap = 0):
         data = data[:, np.newaxis]
     
     # number of samples and number of channels
-    n_samples, n_channels = x.shape
+    n_samples, n_channels = data.shape
 
     # Size of half epoch
     half_epoch = np.ceil(samples_epoch / 2 )
@@ -1148,7 +1148,7 @@ def plot_psd_data(psd_data, ix=None, p_range=None, f_range=None):
        
     def plot_one_psd(ax, X_pwr, f_ax, title_str, p_range, f_range):
         """
-        Plots ONLY ONE Modulation Spectrogram
+        Plots ONLY ONE PSD
         """    
         X_plot = 10 * np.log10(X_pwr + np.finfo(float).eps) 
         plt.plot(f_ax, X_plot)
@@ -1234,48 +1234,26 @@ def plot_signal(x, fs, name=None):
     plt.draw()
 
 if __name__ == '__main__':
-    
-    import scipy.io as sio
-    import time
-    
+        
+    # Example data
     fs = 256
     t_5s = np.arange(20*fs)/fs
     freqs = np.arange(1,101)
     x = np.asarray([np.sin(8*2*np.pi*t_5s), np.sin(25*2*np.pi*t_5s)])
-
-    #x = x.ravel()    
-    x = np.transpose(x)
-
-
-    t = time.time() 
-    w = wavelet_modulation_spectrogram(x, fs)
-    elapsed = time.time() - t
-    print(elapsed)
     
-    t = time.time() 
+    x = np.transpose(x)
+    # x is composed by two signals:
+        # 1) a 8  Hz sine wave
+        # 2) a 25 hz sine wave   
+    
+    # Compute modulation spectrogram with CWT 
+    w = wavelet_modulation_spectrogram(x, fs)
+    
+    # Compute modulation spectrogram with STFT
     f = strfft_modulation_spectrogram(x, fs, 1*fs, 0.5*fs)
-    elapsed = time.time() - t
-    print(elapsed)
     
     plot_modulation_spectrogram_data(w)
     plot_spectrogram_data(w['spectrogram_data'])
     
-    plot_modulation_spectrogram_data(f)
-    plot_spectrogram_data(f['spectrogram_data'], c_map='jet')
-    
-    
-#    matlab = sio.loadmat('/home/cassani/Dropbox/data_N030.mat')
-#    fs = matlab['fs'][0][0]
-#    x  = matlab['eeg']
-#    x = x[0:int(fs*120), 0:5]
-#    
-#    t = time.time() 
-#    w = wavelet_modulation_spectrogram(x, fs)
-#    elapsed = time.time() - t
-#    print(elapsed)
-#    
-#    t = time.time() 
-#    f = strfft_modulation_spectrogram(x, fs, 1*fs, 0.5*fs)
-#    elapsed = time.time() - t
-#    print(elapsed)
-    
+    plot_modulation_spectrogram_data(f, c_map='jet')
+    plot_spectrogram_data(f['spectrogram_data'], c_map='jet')    
