@@ -13,13 +13,10 @@ function explore_stfft_ama_gui(X, fs, Name, c_map)
 
 """
 
-"""
-Show how to connect to keypress events
-"""
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import ama_toolbox as ama
+from . import am_analysis as ama
 
 def press(event):
     global ix_segment
@@ -72,7 +69,8 @@ def first_run():
     global x_spectrogram
     global seg_size_sec
     global name
-
+    global fs
+    global X
 
     ix_segment = 0
     print('Computing full-signal spectrogram...')
@@ -112,6 +110,7 @@ def update_plots():
     global x_spectrogram
     global fig
     global name
+    global fs
     
     fig.clear()
     
@@ -133,7 +132,6 @@ def update_plots():
     plt.subplot(4,2,7)
     ama.plot_spectrogram_data(x_stft_modspec['spectrogram_data'])
     #plot_spectrogram_data(x_stft_modspec.spectrogram_data, [], [], freq_range, freq_color)
-
 
     # plot time series for segment
     plt.subplot(4,2,5)
@@ -162,7 +160,6 @@ def update_plots():
     plt.subplot(h_tf)
     varea([seg_ini_sec, seg_end_sec ],'r',0.4)
 
-
     print('done!')
 
     # display information about analysis
@@ -174,8 +171,8 @@ def update_plots():
     print('window shift  (seconds): %0.3f' % win_shft_sec)
     print('windows per segment    : %d'% x_stft_modspec['n_windows'])
 
-
     fig.canvas.draw()
+    plt.show()
     return
 
 def update_parameters():
@@ -196,7 +193,7 @@ def varea(xlims, color_str, alpha_v=0.2):
 
 
 
-def explore_stfft_ama_gui(x, fs, channel_names = None, c_map = 'viridis'):
+def explore_stfft_ama_gui(x, fs_arg, channel_names_arg = None, c_map = 'viridis'):
     
     # Global variables
     global ix_channel
@@ -225,11 +222,15 @@ def explore_stfft_ama_gui(x, fs, channel_names = None, c_map = 'viridis'):
     global fs
     global channel_names
     
+    fs = fs_arg
+    channel_names = channel_names_arg
+    X = x
+    
     # input 'x' as 2D matrix [samples, columns]
     try:
-        x.shape[1]
+        X.shape[1]
     except IndexError:
-        X = x[:, np.newaxis]
+        X = X[:, np.newaxis]
             
     # generate default channel names, if needed
     if channel_names is None:
@@ -259,7 +260,6 @@ def explore_stfft_ama_gui(x, fs, channel_names = None, c_map = 'viridis'):
     
     # other variables
     n_segments = None
-
 
     x_segments = None
     name = None
