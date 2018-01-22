@@ -16,6 +16,9 @@ function explore_stfft_ama_gui(X, fs, Name, c_map)
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.widgets import TextBox, Button
+
+
 from . import am_analysis as ama
 
 def press(event):
@@ -51,7 +54,8 @@ def press(event):
         ix_channel = ix_channel + 1
         first_run()   
     elif event.key == 'u':        # U: Update parameters
-        update_parameters()
+        fig.canvas.mpl_disconnect(cid)
+        create_parameter_gui()
     elif event.key == 'escape':
         fig.canvas.mpl_disconnect(cid)
         plt.close(fig)
@@ -67,10 +71,10 @@ def first_run():
     global win_shft_smp
     global x_probe
     global x_spectrogram
-    global seg_size_sec
     global name
     global fs
     global X
+    global parameters
 
     ix_segment = 0
     print('Computing full-signal spectrogram...')
@@ -80,10 +84,10 @@ def first_run():
     ix_channel = np.minimum(n_channels-1, ix_channel)
 
     # STFFT modulation spectrogram parameters in samples
-    win_size_smp = round(win_size_sec * fs)  # (samples)
-    win_shft_smp = round(win_shft_sec * fs)  # (samples)
-    seg_size_smp = round(seg_size_sec * fs)  # (samples)
-    seg_shft_smp = round(seg_shft_sec * fs)  # (samples)
+    win_size_smp = round(parameters['win_size_sec'] * fs)  # (samples)
+    win_shft_smp = round(parameters['win_shft_sec'] * fs)  # (samples)
+    seg_size_smp = round(parameters['seg_size_sec'] * fs)  # (samples)
+    seg_shft_smp = round(parameters['seg_shft_sec'] * fs)  # (samples)
 
     # signal for analysis
     x_probe = X[:, ix_channel]
@@ -99,6 +103,79 @@ def first_run():
     update_plots()
     return   
 
+def create_parameter_gui():
+    global fig2
+    global boxes
+    global parameters
+    # new figure for parameters
+    fig2, ax2 = plt.subplots()
+    plt.axis('off')   
+    plt.subplots_adjust(top=0.5, left=0.1, right=0.2, bottom=0.4)
+    
+    axbox = plt.axes([0.4, 0.85, 0.2, 0.075])
+    text_box0 = TextBox(axbox, 'Segment (seconds)', str(parameters['seg_size_sec']))
+    axbox = plt.axes([0.4, 0.75, 0.2, 0.075])
+    text_box1 = TextBox(axbox, 'Segment shift (seconds)', str(parameters['seg_shft_sec']))
+    axbox = plt.axes([0.4, 0.65, 0.2, 0.075])
+    text_box2 = TextBox(axbox, 'Window size (seconds)', str(parameters['win_size_sec']))
+    axbox = plt.axes([0.4, 0.55, 0.2, 0.075])
+    text_box3 = TextBox(axbox, 'Window shift (seconds)', str(parameters['win_shft_sec']))
+    axbox = plt.axes([0.4, 0.45, 0.2, 0.075])
+    text_box4 = TextBox(axbox, 'Freq Conv. min Max (Hz)', str(parameters['freq_range']).strip('[').strip(']') )
+    axbox = plt.axes([0.4, 0.35, 0.2, 0.075])
+    text_box5 = TextBox(axbox, 'Spectr Pwr min Max (dB)', str(parameters['freq_color']).strip('[').strip(']'))
+    axbox = plt.axes([0.4, 0.25, 0.2, 0.075])
+    text_box6 = TextBox(axbox, 'Freq Mod. min Max (Hz)', str(parameters['mfreq_range']).strip('[').strip(']'))
+    axbox = plt.axes([0.4, 0.15, 0.2, 0.075])
+    text_box7 = TextBox(axbox, 'ModSpec Pwr min Max (dB)', str(parameters['mfreq_color']).strip('[').strip(']'))
+    
+    axbox = plt.axes([0.4, 0.05, 0.2, 0.075])
+    ok_button = Button(axbox, 'OK')
+    
+    boxes = [text_box0, text_box1, text_box2, text_box3,
+             text_box4, text_box5, text_box6, text_box7, ok_button]
+    
+    ok_button.on_clicked(submit)
+    return
+
+def submit(text):
+    global fig2
+    global fig
+    global cid
+    plt.close(fig2)
+    update_parameters()
+    cid = fig.canvas.mpl_connect('key_press_event', press)
+
+def update_parameters():
+    global boxes
+    global parameters
+    # Pop reference to Button
+    boxes.pop(-1)
+    parameters['seg_size_sec'] = float(boxes[0].text)
+    parameters['seg_shft_sec'] = float(boxes[1].text)
+    parameters['win_size_sec'] = float(boxes[2].text)
+    parameters['win_shft_sec'] = float(boxes[3].text)
+    if boxes[4].text == 'None':
+        parameters['freq_range'] = None
+    else:
+        parameters['freq_range'] = np.fromstring(boxes[4].text, sep=' ')
+    if boxes[5].text == 'None':
+        parameters['freq_color'] = None
+    else:
+        parameters['freq_color'] = np.fromstring(boxes[5].text, sep=' ')
+    if boxes[6].text == 'None':
+        parameters['mfreq_range'] = None
+    else:
+        parameters['mfreq_range'] = np.fromstring(boxes[6].text, sep=' ')
+    if boxes[7].text == 'None':
+        parameters['mfreq_color'] = None
+    else:
+        parameters['mfreq_color'] = np.fromstring(boxes[7].text, sep=' ')
+
+    first_run()
+    
+    return
+
     
 def update_plots():
     global ix_segment
@@ -111,6 +188,8 @@ def update_plots():
     global fig
     global name
     global fs
+    global parameters
+    global gc_map
     
     fig.clear()
     
@@ -125,13 +204,11 @@ def update_plots():
     print('Computing modulation spectrogram...')
     x_stft_modspec = ama.strfft_modulation_spectrogram(x, fs, win_size_smp, win_shft_smp, fft_factor_y=2, fft_factor_x=2, channel_names=name)
     plt.subplot(4,2,(6,8))
-    ama.plot_modulation_spectrogram_data(x_stft_modspec)
-    #plot_modulation_spectrogram_data(x_stft_modspec, [], freq_range, mfreq_range, mfreq_color)
-
+    ama.plot_modulation_spectrogram_data(x_stft_modspec, f_range=parameters['freq_range'], modf_range=parameters['mfreq_range'], c_range=parameters['mfreq_color'], c_map=gc_map)
+    
     # plot spectrogram for segment
     plt.subplot(4,2,7)
-    ama.plot_spectrogram_data(x_stft_modspec['spectrogram_data'])
-    #plot_spectrogram_data(x_stft_modspec.spectrogram_data, [], [], freq_range, freq_color)
+    ama.plot_spectrogram_data(x_stft_modspec['spectrogram_data'], f_range=parameters['freq_range'], c_range=parameters['freq_color'], c_map=gc_map )
 
     # plot time series for segment
     plt.subplot(4,2,5)
@@ -140,8 +217,7 @@ def update_plots():
    
     # plot spectrogram for full signal        
     h_tf = plt.subplot(4,2,(3,4))
-    ama.plot_spectrogram_data(x_spectrogram)
-    #ama.plot_spectrogram_data(x_spectrogram, [], [], freq_range, freq_color)
+    ama.plot_spectrogram_data(x_spectrogram, f_range=parameters['freq_range'], c_range=parameters['freq_color'], c_map=gc_map )
     #set(gca, 'XLim', time_lim);
 
     # plot full signal
@@ -150,8 +226,8 @@ def update_plots():
     plt.colorbar()
 
     # highlight area under analysis in time series
-    seg_ini_sec = (ix_segment ) * seg_shft_sec
-    seg_end_sec = seg_ini_sec + seg_size_sec
+    seg_ini_sec = (ix_segment ) * parameters['seg_shft_sec']
+    seg_end_sec = seg_ini_sec + parameters['seg_size_sec']
 
     plt.subplot(h_ts)
     varea([seg_ini_sec, seg_end_sec ],'r',0.4)
@@ -164,22 +240,15 @@ def update_plots():
 
     # display information about analysis
     print('signal name            : %s' % name )
-    print('segment size  (seconds): %0.3f' % seg_size_sec)
-    print('segment shift (seconds): %0.3f' % seg_shft_sec)
+    print('segment size  (seconds): %0.3f' % parameters['seg_size_sec'])
+    print('segment shift (seconds): %0.3f' % parameters['seg_shft_sec'])
     print('segment position  (sec): %0.3f' % seg_ini_sec)
-    print('window size   (seconds): %0.3f' % win_size_sec)
-    print('window shift  (seconds): %0.3f' % win_shft_sec)
+    print('window size   (seconds): %0.3f' % parameters['win_size_sec'])
+    print('window shift  (seconds): %0.3f' % parameters['win_shft_sec'])
     print('windows per segment    : %d'% x_stft_modspec['n_windows'])
 
     fig.canvas.draw()
     plt.show()
-    return
-
-def update_parameters():
-    #global     
-#TODO Obtain parameters from a GUI and update their global variables     
-    #first_run()
-    
     return
 
 
@@ -204,16 +273,9 @@ def explore_stfft_ama_gui(x, fs_arg, channel_names_arg = None, c_map = 'viridis'
     global cid
     global fig
     
-    global win_size_sec
-    global win_shft_sec
-    global seg_size_sec
-    global seg_shft_sec
-    
-    global freq_range
-    global mfreq_range
-    global freq_color
-    global mfreq_color
-    
+    global parameters
+    global gc_map
+        
     global win_size_smp    
     global win_shft_smp
     
@@ -225,6 +287,7 @@ def explore_stfft_ama_gui(x, fs_arg, channel_names_arg = None, c_map = 'viridis'
     fs = fs_arg
     channel_names = channel_names_arg
     X = x
+    gc_map = c_map
     
     # input 'x' as 2D matrix [samples, columns]
     try:
@@ -245,14 +308,15 @@ def explore_stfft_ama_gui(x, fs_arg, channel_names_arg = None, c_map = 'viridis'
     
     #% Amplitude Modulation Analysis
     # Default Modulation Analysis parameters
-    win_size_sec = 0.5      # window length for the STFFT
-    win_shft_sec = 0.02     # shift between consecutive windows (seconds)
-    seg_size_sec = 8.0      # segment of signal to compute the Modulation Spectrogram (seconds)
-    seg_shft_sec = 8.0      # shift between consecutive segments (seconds)
-    freq_range   = None     # limits [min, max] for the conventional frequency axis (Hz)
-    mfreq_range  = None     # limits [min, max] for the modulation frequency axis (Hz)
-    freq_color   = None     # limits [min, max] for the power in Spectrogram (dB)
-    mfreq_color  = None     # limits [min, max] for the power in Modulation Spectrogram (dB)
+    parameters = {}
+    parameters['seg_size_sec'] = 8.0      # segment of signal to compute the Modulation Spectrogram (seconds)
+    parameters['seg_shft_sec'] = 8.0      # shift between consecutive segments (seconds)
+    parameters['win_size_sec'] = 0.5      # window length for the STFFT
+    parameters['win_shft_sec'] = 0.02     # shift between consecutive windows (seconds)
+    parameters['freq_range']   = None     # limits [min, max] for the conventional frequency axis (Hz)
+    parameters['mfreq_range']  = None     # limits [min, max] for the modulation frequency axis (Hz)
+    parameters['freq_color']   = None     # limits [min, max] for the power in Spectrogram (dB)
+    parameters['mfreq_color']  = None     # limits [min, max] for the power in Modulation Spectrogram (dB)
         
     # initial channel and segment
     ix_channel = 0

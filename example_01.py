@@ -42,12 +42,12 @@ if __name__ == "__main__":
     #% ECG data (1 channel) using STFFT-based Modulation Spectrogram
     [x, fs] = pickle.load(open( "./example_data/ecg_data.pkl", "rb" ))
     # STFFT Modulation Spectrogram
-    explore_stfft_ama_gui(x, fs, 'ECG')
+    explore_stfft_ama_gui(x, fs, ['ECG'])
     
     #% ECG data (1 channel) using wavelet-based Modulation Spectrogram
     [x, fs] = pickle.load(open( "./example_data/ecg_data.pkl", "rb" ))
     # Wavelet Modulation Spectrogram
-    explore_wavelet_ama_gui(x, fs, 'ECG')
+    explore_wavelet_ama_gui(x, fs, ['ECG'])
     
     #% EEG data (7 channels) using STFFT-based Modulation Spectrogram
     [x, fs] = pickle.load(open( "./example_data/eeg_data.pkl", "rb" ))
