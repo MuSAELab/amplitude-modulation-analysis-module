@@ -497,7 +497,7 @@ def strfft_spectrogram(x, fs, win_size, win_shift, n_fft=None, win_funct='hammin
 
     
     # epoch signal or signals 'x'
-    x_epoched, [], ix = epoching(x, win_size, win_size - win_shift)
+    x_epoched, _ , ix = epoching(x, win_size, win_size - win_shift)
 
     # time axis for Spectrogram
     t_ax = time_vct[ix];
