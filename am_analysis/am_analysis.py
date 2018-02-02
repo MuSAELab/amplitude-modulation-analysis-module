@@ -186,12 +186,13 @@ def cmorlet_wavelet(x, fs, freq_vct, n=6, normalization=True):
     # close to 0 in the negative and positive edges
     n_samples_wav = np.round( (2*n/freq_vct[0])*fs )
 
+    # The wavelet will be symmetrical around 0
+    if np.mod(n_samples_wav,2) == 0: # even samples
+        n_samples_wav = n_samples_wav + 1
+
     # create time vector for Wavelet family
     half = np.floor(n_samples_wav/2)
-    if (n_samples_wav % 2) == 1:
-        time = np.arange(-half, half+1)/fs
-    else:
-        time = np.arange(-(half-1), half+1)/fs
+    time = np.arange(-half, half+1)/fs
 
     # initialize Wavelet family matrix
     wfam = np.zeros([len(time), n_freqs], dtype=complex)
