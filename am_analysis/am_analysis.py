@@ -634,7 +634,7 @@ def wavelet_spectrogram(x, fs, n_cycles=6, freq_vct=None, channel_names=None):
     n_samples  = np.size(x, 0)
 
     # Wavelet transform
-    wavelet_coefficients, wavelet_family = cmorlet_wavelet(x, fs, freq_vct)
+    wavelet_coefficients, wavelet_family = cmorlet_wavelet(x, fs, freq_vct, n_cycles)
 
     # Power from Wavelet coefficients
     power_spectrogram = np.square(np.abs(wavelet_coefficients))
