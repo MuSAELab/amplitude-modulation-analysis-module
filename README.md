@@ -1,6 +1,6 @@
 # Amplitude Modulation Analysis Module
 
-The amplitude modulation analysis module for **Python 3**, provides functions to compute and visualize the frequency-frequency-domain representation of real-valued signals. The **MATLAB-Octave** version of this module can be find here: [https://github.com/MuSAELab/amplitude-modulation-analysis-toolbox](https://github.com/MuSAELab/amplitude-modulation-analysis-toolbox)
+The amplitude modulation analysis module for **Python 3**, provides functions to compute and visualize the frequency-frequency-domain representation of real-valued signals. The **MATLAB-Octave** version of this module can be found here: [https://github.com/MuSAELab/amplitude-modulation-analysis-toolbox](https://github.com/MuSAELab/amplitude-modulation-analysis-toolbox)
 
 The module includes a GUI implementation, which facilitates the amplitude modulation analysis by allowing changing parameters on line.
 
