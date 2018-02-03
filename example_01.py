@@ -36,6 +36,8 @@
 
 import pickle
 from am_analysis.explore_stfft_ama_gui import explore_stfft_ama_gui
+from am_analysis.explore_wavelet_ama_gui import explore_wavelet_ama_gui
+
 
 if __name__ == "__main__":
     
@@ -50,12 +52,12 @@ if __name__ == "__main__":
     explore_wavelet_ama_gui(x, fs, ['ECG'])
     
     #% EEG data (7 channels) using STFFT-based Modulation Spectrogram
-    [x, fs] = pickle.load(open( "./example_data/eeg_data.pkl", "rb" ))
+    [x, fs, ch_names] = pickle.load(open( "./example_data/eeg_data.pkl", "rb" ))
     # STFFT Modulation Spectrogram
     explore_stfft_ama_gui(x, fs, ch_names)
     
     #% EEG data (7 channels) using wavelet-based Modulation Spectrogram
-    [x, fs] = pickle.load(open( "./example_data/ecg_data.pkl", "rb" ))
+    [x, fs, ch_names] = pickle.load(open( "./example_data/eeg_data.pkl", "rb" ))
     # Wavelet Modulation Spectrogram
     explore_wavelet_ama_gui(x, fs, ch_names)
     
