@@ -27,3 +27,6 @@ CWT-based Amplitude Modulation analysis GUI
 
 ### Example 2: `example_02.py`
 This script shows presents the details in the usage of the functions in the module to carry on the signal transformations, as well as plotting functions. Refer to the comments in `example_02.py`
+
+### Acknowledgement
+The research is based upon work supported by the Office of the Director of National Intelligence (ODNI), Intelligence Advanced Research Projects Activity (IARPA), via IARPA Contract N°2017 - 17042800005 . The views and conclusions con - tained herein are thos e of the authors and should not be interpreted as necessarily representing the official policies or endorsements, either expressed or implied, of the ODNI, IARPA, or the U.S. Government. The U.S. Government is authorized to reproduce and distribute reprint s for Governmental purposes notwithstanding any copyright annotation thereon.
