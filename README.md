@@ -11,6 +11,10 @@ Signal processing steps involved in the calculation of the modulation spectrogra
 
 This module provides two implementations for the time to time-frequency transformation (*First Transformation*), one based on the STFFT, and the other on the continuous wavelet transform (CWT) using the Complex Morlet wavelet. The time-frequency to frequency-frequency transformation (*Second Transformation*) is carried out with the FFT.
 
+## Installation
+Dowload or clone the respository, then:
+`$ pip install .`
+
 ## Examples
 Besides the functions to compute and visualize the frequency-frequency representation of real signals, example data and scripts are provided.
 
