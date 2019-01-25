@@ -119,6 +119,8 @@ def epoching(data, samples_epoch, samples_overlap = 0):
 
     # Number of epochs
     n_epochs =  int(np.floor( (n_samples - samples_epoch) / float(samples_shift) ) + 1 )
+    if n_epochs == 0:
+        return np.array([]), data, np.array([])
 
     #markers indicates where the epoch starts, and the epoch contains samples_epoch rows
     markers = np.asarray(range(0,n_epochs)) * samples_shift;
