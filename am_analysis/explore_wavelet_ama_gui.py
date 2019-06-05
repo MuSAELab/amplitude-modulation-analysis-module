@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-function explore_wavelet_ama_gui(X, fs, Name, c_map)
+function explore_wavelet_ama_gui(X, fs, Names, c_map)
  Analysis of a Signal in Frequency-Frequency Domain
  Time -> Time-Frequency transformation performed with Wavelet Transform (Complex Morlet)
 
@@ -9,7 +9,7 @@ function explore_wavelet_ama_gui(X, fs, Name, c_map)
   X     Real-valued column-vector signal or set of signals [n_samples, n_channels]
   fs    Sampling frequency (Hz)
  Optional:
-  Name  (Optional) Name of the signal(s), List of Strings
+  Names (Optional) Name of the signal(s), List of Strings
   c_map (Optional) Colormap, Default 'viridis'
 
 """
@@ -71,7 +71,7 @@ def first_run():
     global n_cycles    
     global x_probe
     global x_spectrogram
-    global name
+    global channel_names
     global fs
     global X
     global parameters
@@ -91,14 +91,13 @@ def first_run():
 
     # signal for analysis
     x_probe = X[:, ix_channel]
-    name = channel_names[ix_channel]
 
     # segment of signal under analysis
     x_segments, _, _= ama.epoching(x_probe, seg_size_smp, seg_size_smp - seg_shft_smp)
     n_segments = x_segments.shape[2]
 
     # compute and plot complete spectrogram
-    x_spectrogram = ama.wavelet_spectrogram(x_probe, fs, n_cycles, channel_names = name);
+    x_spectrogram = ama.wavelet_spectrogram(x_probe, fs, n_cycles, channel_names=[channel_names[ix_channel]])
 
     update_plots()
     return   
@@ -182,7 +181,7 @@ def update_plots():
     global x_probe
     global x_spectrogram
     global fig
-    global name
+    global channel_names
     global fs
     global parameters
     global gc_map
@@ -198,28 +197,31 @@ def update_plots():
 
     # compute and plot Modulation Spectrogram
     print('Computing modulation spectrogram...')
-    x_wavelet_modspec = ama.wavelet_modulation_spectrogram(x, fs, n_cycles=n_cycles, fft_factor_x=2, channel_names=name)
+    x_wavelet_modspec = ama.wavelet_modulation_spectrogram(x, fs, n_cycles=n_cycles, fft_factor_x=2, channel_names=[channel_names[ix_channel]])
     plt.subplot(4,2,(6,8))
     ama.plot_modulation_spectrogram_data(x_wavelet_modspec, f_range=parameters['freq_range'], modf_range=parameters['mfreq_range'], c_range=parameters['mfreq_color'], c_map=gc_map)
+
+    # plot time series for segment
+    plt.subplot(4,2,5)
+    ama.plot_signal(x, fs, channel_names[ix_channel])
+    plt.colorbar()
+    time_lim = plt.xlim()
     
     # plot spectrogram for segment
     plt.subplot(4,2,7)
     ama.plot_spectrogram_data(x_wavelet_modspec['spectrogram_data'], f_range=parameters['freq_range'], c_range=parameters['freq_color'], c_map=gc_map )
+    plt.xlim(time_lim)
 
-    # plot time series for segment
-    plt.subplot(4,2,5)
-    ama.plot_signal(x, fs, name)
+    # plot full signal
+    h_ts = plt.subplot(4,2,(1,2))
+    ama.plot_signal(x_probe, fs, channel_names[ix_channel])
     plt.colorbar()
+    time_lim = plt.xlim()
    
     # plot spectrogram for full signal        
     h_tf = plt.subplot(4,2,(3,4))
     ama.plot_spectrogram_data(x_spectrogram, f_range=parameters['freq_range'], c_range=parameters['freq_color'], c_map=gc_map )
-    #set(gca, 'XLim', time_lim);
-
-    # plot full signal
-    h_ts = plt.subplot(4,2,(1,2))
-    ama.plot_signal(x_probe, fs, name)
-    plt.colorbar()
+    plt.xlim(time_lim)
 
     # highlight area under analysis in time series
     seg_ini_sec = (ix_segment ) * parameters['seg_shft_sec']
@@ -235,7 +237,7 @@ def update_plots():
     print('done!')
 
     # display information about analysis
-    print('signal name            : %s' % name )
+    print('signal name            : %s' % channel_names[ix_channel] )
     print('segment size  (seconds): %0.3f' % parameters['seg_size_sec'])
     print('segment shift (seconds): %0.3f' % parameters['seg_shft_sec'])
     print('segment position  (sec): %0.3f' % seg_ini_sec)
@@ -288,16 +290,19 @@ def explore_wavelet_ama_gui(x, fs_arg, channel_names_arg = None, c_map = 'viridi
     except IndexError:
         X = X[:, np.newaxis]
             
+    # number of channels
+    n_channels = X.shape[1]
+    
+    if type(channel_names) == str and n_channels == 1:
+        channel_names = [channel_names]
     # generate default channel names, if needed
-    if channel_names is None:
+    if channel_names is None or len(channel_names) != n_channels:
         channel_names = []
         for ic  in range (0 , n_channels):
             icp = ic + 1
             channel_names.append( str('Signal-%02d' % icp) )
         
     
-    # number of samples and number of channels
-    n_channels = x.shape[1]
     
     #% Amplitude Modulation Analysis
     # Default Modulation Analysis parameters
