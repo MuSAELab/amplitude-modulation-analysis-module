@@ -123,12 +123,12 @@ def epoching(data, samples_epoch, samples_overlap = 0):
         return np.array([]), data, np.array([])
 
     #markers indicates where the epoch starts, and the epoch contains samples_epoch rows
-    markers = np.asarray(range(0,n_epochs)) * samples_shift;
+    markers = np.asarray(range(0,n_epochs)) * samples_shift
     markers = markers.astype(int)
 
     #Divide data in epochs
-    epochs = np.zeros((samples_epoch, n_channels, n_epochs));
-    ix_center = np.zeros((n_epochs,1));
+    epochs = np.zeros((samples_epoch, n_channels, n_epochs))
+    ix_center = np.zeros((n_epochs,1))
 
     for i_epoch in range(0,n_epochs):
         epochs[:,:,i_epoch] = data[ markers[i_epoch] : markers[i_epoch] + samples_epoch ,:]
@@ -279,7 +279,7 @@ def rfft(x, n=None, dim=0):
             dim_def = 0 
         else:
             # X is a 2D Matrix, a shape [n_samples, n_channels] is asummed
-            dim_def = 0;
+            dim_def = 0
     
     if dim is None:
         dim = dim_def
@@ -489,11 +489,11 @@ def strfft_spectrogram(x, fs, win_size, win_shift, n_fft=None, win_funct='hammin
         n_fft = win_size
 
     # round win_size and win_shift
-    win_size = round(win_size);
-    win_shift = round(win_shift);
+    win_size = round(win_size)
+    win_shift = round(win_shift)
 
     # time axis step for Spectrogram
-    t_delta = win_shift / fs;
+    t_delta = win_shift / fs
 
     # Create time vector 'time_vct' for signal 'x'
     time_vct = np.array(range(0, np.size(x, 0))) / fs
@@ -503,7 +503,7 @@ def strfft_spectrogram(x, fs, win_size, win_shift, n_fft=None, win_funct='hammin
     x_epoched, _ , ix = epoching(x, win_size, win_size - win_shift)
 
     # time axis for Spectrogram
-    t_ax = time_vct[ix];
+    t_ax = time_vct[ix]
 
     # spectrogram parameters
     n_samples_win, n_channels, n_windows = x_epoched.shape
@@ -770,7 +770,7 @@ def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None,
         spectrogram_1ch = np.sqrt(spectrogram_data['power_spectrogram'][:,:,i_channel]) 
 
         # compute 'rfft_psd' on each frequency timeseries
-        mod_psd_struct = rfft_psd(spectrogram_1ch, fs_mod, n_fft_x, win_funct_x, channel_names );
+        mod_psd_struct = rfft_psd(spectrogram_1ch, fs_mod, n_fft_x, win_funct_x, channel_names )
     
         if i_channel == 0:
             # modulation frequency axis
@@ -779,7 +779,7 @@ def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None,
             fmod_delta = mod_psd_struct['freq_delta']
     
             # initialize 'rFFT_modspec'  and 'pwr_modspec'
-            n_freqsmod = len(fmod_ax);
+            n_freqsmod = len(fmod_ax)
             rFFT_modspec = np.zeros((n_freqs, n_freqsmod ,n_channels), dtype = complex)
             pwr_modspec  = np.zeros((n_freqs, n_freqsmod ,n_channels))
 
@@ -789,7 +789,7 @@ def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None,
         pwr_modspec[:, :, i_channel] = mod_psd_struct['PSD'].transpose()
 
     # scale 'pwr_modspec' by modulation-frequency delta
-    pwr_modspec = pwr_modspec / fmod_delta;
+    pwr_modspec = pwr_modspec / fmod_delta
 
     # output 'modulation_spectrogram_data' structure
     modulation_spectrogram_data = {}
@@ -976,8 +976,8 @@ def plot_spectrogram_data(spectrogram_data, ix=None, t_range=None, f_range=None,
         ax.yaxis.set_major_locator(ticker.AutoLocator())
         ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
              
-        plt.xlabel('Time (s)');
-        plt.ylabel('Frequency (Hz)');
+        plt.xlabel('fime (s)')
+        plt.ylabel('frequency (Hz)')
     
     
         if t_range is not None:
@@ -1013,12 +1013,12 @@ def plot_spectrogram_data(spectrogram_data, ix=None, t_range=None, f_range=None,
         
     # Check if ix has ONLY one element
     if len(ix) == 1:
-        new_figure = False;
+        new_figure = False
         # Retrieve Current Axes handle from the Current Figure, if there is not
         # Current Figure, it's generated here       
         ax = plt.gca()
     else:
-        new_figure = True;
+        new_figure = True
 
     for i_channel in ix:      
         if new_figure:
@@ -1073,8 +1073,8 @@ def plot_modulation_spectrogram_data(modulation_spectrogram_data, ix=None, f_ran
         ax.yaxis.set_major_locator(ticker.AutoLocator())
         ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
              
-        plt.xlabel('Modulation frequency (Hz)');
-        plt.ylabel('Conventional frequency (Hz)');
+        plt.xlabel('modulation frequency (Hz)')
+        plt.ylabel('conventional frequency (Hz)')
     
     
         if modf_range is not None:
@@ -1109,12 +1109,12 @@ def plot_modulation_spectrogram_data(modulation_spectrogram_data, ix=None, f_ran
     
     # Check if ix has ONLY one element
     if len(ix) == 1:
-        new_figure = False;
+        new_figure = False
         # Retrieve Current Axes handle from the Current Figure, if there is not
         # Current Figure, it's generated here       
         ax = plt.gca()
     else:
-        new_figure = True;
+        new_figure = True
 
     for i_channel in ix:      
         if new_figure:
@@ -1163,8 +1163,8 @@ def plot_psd_data(psd_data, ix=None, p_range=None, f_range=None):
         ax.yaxis.set_major_locator(ticker.AutoLocator())
         ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
              
-        plt.xlabel('Modulation frequency (Hz)');
-        plt.ylabel('Conventional frequency (Hz)');
+        plt.xlabel('frequency (Hz)')
+        plt.ylabel('power (dB/Hz)')
     
     
         if f_range is not None:
@@ -1191,12 +1191,12 @@ def plot_psd_data(psd_data, ix=None, p_range=None, f_range=None):
     
     # Check if ix has ONLY one element
     if len(ix) == 1:
-        new_figure = False;
+        new_figure = False
         # Retrieve Current Axes handle from the Current Figure, if there is not
         # Current Figure, it's generated here       
         ax = plt.gca()
     else:
-        new_figure = True;
+        new_figure = True
 
     for i_channel in ix:      
         if new_figure:
@@ -1227,7 +1227,7 @@ def plot_signal(x, fs, name=None):
     time_vector = np.arange(len(x))/fs
     
     plt.plot(time_vector,x)
-    plt.xlabel('Time (s)')
+    plt.xlabel('time (s)')
     plt.xlim([time_vector.min(), time_vector.max()])
     
     if name is None:

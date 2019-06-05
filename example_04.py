@@ -51,7 +51,7 @@ if __name__ == "__main__":
     ama.plot_spectrogram_data(stft_spectrogram)
 
     plt.subplot2grid((4,5),(0,0),rowspan=1, colspan=5)
-    ama.plot_signal(x, fs, x_name) 
+    ama.plot_signal(x, fs, x_name[0]) 
     plt.colorbar()
     
     stft_modulation_spectrogram = ama.strfft_modulation_spectrogram(x, fs, win_size = round(win_size_sec*fs), win_shift = round(win_shft_sec*fs), channel_names = x_name)
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     ama.plot_spectrogram_data(cwt_spectrogram)
     
     plt.subplot2grid((4,5),(0,0),rowspan=1, colspan=5)
-    ama.plot_signal(x, fs, x_name) 
+    ama.plot_signal(x, fs, x_name[0]) 
     plt.colorbar()
     
     cwt_modulation_spectrogram = ama.wavelet_modulation_spectrogram(x, fs, n_cycles, frequency_vector, channel_names = x_name)
