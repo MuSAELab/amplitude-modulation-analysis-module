@@ -141,6 +141,44 @@ def epoching(data, samples_epoch, samples_overlap = 0):
     
     return epochs, remainder, ix_center.astype(int)
 
+def iepoching(epochs, shift_epoch):
+    """
+    Merges a set of epochs [n_samples_epoch, n_channels] into  
+    the complete signal(s) x [n_samples, n_channels] taking into account
+    the shift between consecutive epochs
+   
+    Parameters
+    ----------
+    epochs : 2D array_like with shape (n_samples, n_channels)
+    shift_epoch : number of samples in smaller epochs
+
+    Returns
+    -------
+    x : 2D array with shape (samples_epoch, n_channels, n_epochs)
+
+    """
+    
+    # obtain parameters
+    (size_epoch, n_channels, n_epochs) = epochs.shape
+    n_samples = (shift_epoch * (n_epochs - 1)) + size_epoch
+    ix = np.arange(n_epochs) * shift_epoch
+    
+    # merging matrix
+    merging = np.zeros((n_samples, n_channels, 2))
+    # Number of epochs that contribute for a specific point
+    n_merging = np.zeros((n_samples, n_channels, 2))
+    
+    for i_epoch in range(n_epochs):
+        merging[ix[i_epoch] : ix[i_epoch] + size_epoch, :, 1 ] = epochs[:, :, i_epoch]
+        n_merging[ix[i_epoch] : ix[i_epoch] + size_epoch, :, 1] = 1
+        merging[:,:,0] = np.sum(merging, axis=2)
+        n_merging[:,:,0] = np.sum(n_merging, axis=2)
+        merging[ix[i_epoch] : ix[i_epoch] + size_epoch, :, 1 ] = 0
+        n_merging[ix[i_epoch] : ix[i_epoch] + size_epoch, :, 1 ] = 0
+    
+    x = np.divide(merging[:,:,0], n_merging[:,:,0])    
+    return x 
+
 
 def cmorlet_wavelet(x, fs, freq_vct, n=6, normalization=True):
     """Perform the continuous wavelet (CWT) tranform using the complex Morlet wavelet.
@@ -228,7 +266,7 @@ def cmorlet_wavelet(x, fs, freq_vct, n=6, normalization=True):
     return wcoef, wfam
 
 
-def rfft(x, n=None, dim=0):
+def rfft(x, n=None, dim=None):
     """Real Fast Fourier Transform.
     
     Considering a real signal A with B = fft(A), B is Hermitian symmetric,
@@ -244,14 +282,11 @@ def rfft(x, n=None, dim=0):
     n : Number of samples to compute the FFT
         (Default = n_samples in array x)    
     dim : Dimension to compute the RFFT 
-        (Default: Last dimension in `x`) 
+        (Default:  first array dimension whose size does not equal 1)
 
     Returns
     -------
-    y  : Non-negative complex spectrum of `x` with shape as `x` 
-            2D array with shape [n_samples, n_freqs] if `x` is 1D array.
-            
-            3D array with shape [n_samples, n_freqs, n_channels] if `x` is 2D array
+    y  : Non-negative complex spectrum of `x` with shape as `x`
     
     See Also
     --------
@@ -308,8 +343,92 @@ def rfft(x, n=None, dim=0):
     
     return y
 
+def irfft(y, n=None, dim=None):
+    '''
+    The IRFFT function returns the Inverse DFT (using the RFFT algorithm)of
+    a spectrum Y containing ONLY the positive frequencies, with the
+    assumption than Y is the positive half of a Hermitian Symmetric spectrum
+    from a real signal X.
+        
+    Parameters
+    ----------
+    y : 1D or 2D array with the positive spectrum of 
+        real-valued signals with shape (n_samples, n_channels)
+    n : Number of samples in the original x signals 
+        N not provided. Y is assumed be obtained from a signal X with even number fo samples 
+    dim : Dimension to compute the IRFFT (Default: first array dimension whose size does not equal 1)
 
-def rfft_psd(x, fs, n_fft=None, win_funct = 'hamming', channel_names=None):
+    Returns
+    -------
+    x : Real-valued signal(s) 
+        
+    See Also
+    --------
+    `np.fft.ifft()`
+    '''
+    
+    # verify y
+    shape_y = y.shape
+    # number of dimentions
+    dim_y = len(shape_y)
+    
+    # limits to 2-dimention data
+    assert dim_y<=2
+        
+    # check shape of y, and set n and dim defaults
+    if dim_y == 1:
+        dim_def = 0
+    else:
+        if shape_y[0] == 1:
+            # shape [1, n_samples] (row vector)
+            dim_def = 1
+        elif shape_y[1] == 1:
+            # shape [n_samples, 1] (column vector)
+            dim_def = 0 
+        else:
+            # X is a 2D Matrix, a shape [n_samples, n_channels] is asummed
+            dim_def = 0
+     
+    if dim is None:
+        dim = dim_def
+            
+    # verify 'n' number-of-samples parameter
+    if n is None:
+        print('N not provided. Y is assumed be obtained from a signal X with even number fo samples')
+        n_half = shape_y[dim]
+        n = (n_half - 1) * 2
+    
+    # reconstruct missing half of Spectrum
+    if np.mod(n,2) == 0:
+        # number of samples is even
+        n_half = (n / 2) + 1
+        ix_limit = slice(1, -1 )
+    else:
+        # number of samples is odd
+        n_half = (n + 1) / 2
+        ix_limit = slice(1, None)
+
+    if dim_y == 1:
+        # spectrum in y is 1D
+        y_neg = np.conj(np.flipud(y[ix_limit]))
+        yc = np.concatenate((y, y_neg), axis=0)
+    else:
+        # check shape of y, and add negative frequencies
+        if dim == 0:
+            # spectra in y are column wise
+            y_neg = np.conj(np.flipud(y[ix_limit, :]))
+            yc = np.concatenate((y, y_neg), axis=0)
+        else:
+            # spectra in y are row-wise
+            y_neg = np.conj(np.fliplr(y[:, ix_limit]))
+            yc = np.concatenate((y, y_neg), axis=1)
+        
+    x = np.real(np.fft.ifft(yc, n, dim))
+        
+    return x
+
+
+def rfft_psd(x, fs, n_fft=None, win_function = 'hamming', channel_names=None):
     """ This function computes the PSD for one or a set of REAL signals.
         
     Parameters
@@ -320,7 +439,7 @@ def rfft_psd(x, fs, n_fft=None, win_funct = 'hamming', channel_names=None):
         in Hz
     n_fft : Number of samples to compute the FFT
             (Default = n_samples in array x)   
-    win_funct : Window function applied to the signal 
+    win_function : Window function applied to the signal 
         (Default 'Hamming')
     channel_names : Names of the signals
         (Default Signal-XX with XX 1, 2, ... n_channels) 
@@ -343,7 +462,7 @@ def rfft_psd(x, fs, n_fft=None, win_funct = 'hamming', channel_names=None):
            Number of samples of the signal or signals 'x'
        n_fft
            Number of elements utilized to perform FFT
-       win_funct
+       win_function
            Window applied to the data in 'x'
        channel_names 
            Names of channels
@@ -371,7 +490,7 @@ def rfft_psd(x, fs, n_fft=None, win_funct = 'hamming', channel_names=None):
             channel_names.append( str('Signal-%02d' % icp) )
             
     # windowing data
-    win = scipy.signal.get_window(win_funct, n_samples, fftbins=False)
+    win = scipy.signal.get_window(win_function, n_samples, fftbins=False)
     win.shape = (n_samples, 1)
     win_rms = np.sqrt(np.sum(np.square(win)) / n_samples)
     win_mat = np.tile(win, n_channels)
@@ -416,12 +535,59 @@ def rfft_psd(x, fs, n_fft=None, win_funct = 'hamming', channel_names=None):
     psd_data['freq_delta'] = f_delta
     psd_data['n_samples'] = n_samples
     psd_data['n_fft'] = n_fft
-    psd_data['win_funct'] = win_funct
+    psd_data['win_function'] = win_function
     psd_data['channel_names'] = channel_names
     
     return psd_data
 
-def strfft_spectrogram(x, fs, win_size, win_shift, n_fft=None, win_funct='hamming', channel_names=None):
+def irfft_psd(psd_data):
+    """Compute the inverse PSD for one or a set of REAL signals.
+         
+     Parameters
+     ----------
+     psd_data : Structure with PSD data, created with rfft_psd()
+ 
+     Returns
+     -------
+     x  : 1D array with shape (n_samples) or
+          2D array with shape (n_samples, n_channels)
+
+    """
+    # Load data from PSD structure
+    rFFT_data = psd_data['rFFT']
+    f_ax = psd_data['freq_axis']
+    fs = psd_data['fs']
+    win_function = psd_data['win_function']
+    n_samples = psd_data['n_samples']
+    n_channels = rFFT_data.shape[1]
+    
+    # Find the number of elements used for the rFFT
+    if f_ax[-1] < fs/2:
+        # elements for FFT was odd
+        n_fft = (len(f_ax) * 2) - 1
+    elif f_ax[-1] - fs/2 < 1000 * np.finfo(np.float64).eps:
+        # elements for FFT was even
+        n_fft = (len(f_ax) - 1) * 2
+    
+    # Window RMS
+    win = scipy.signal.get_window(win_function, n_samples, fftbins=False)
+    win.shape = (n_samples, 1)
+    win_rms = np.sqrt(np.sum(np.square(win)) / n_samples)
+        
+    # IRFFT
+    X = rFFT_data * win_rms
+    x_tmp = irfft(X, n_fft)
+    
+    # Keep only n_samples points
+    x = x_tmp[0 : n_samples + 1, :]
+    
+    # Un-Windowing
+    win_mat = np.tile(win, n_channels)
+    x = np.divide(x, win_mat)
+    
+    return x
+
+def strfft_spectrogram(x, fs, win_size, win_shift, n_fft=None, win_function='hamming', channel_names=None):
     """Compute the Short Time real FFT Spectrogram for one or a set of REAL signals 'x'.
         
     Parameters
@@ -436,7 +602,7 @@ def strfft_spectrogram(x, fs, win_size, win_shift, n_fft=None, win_funct='hammin
         Shift between consecutive windows (samples)   
     n_fft : Number of samples to compute the FFT
             (Default = n_samples in array x)   
-    win_funct : Window function applied to the signal 
+    win_function : Window function applied to the signal 
         (Default 'Hamming')
     channel_names : Names of the signals
         (Default Signal-XX with XX 1, 2, ... n_channels) 
@@ -464,7 +630,7 @@ def strfft_spectrogram(x, fs, win_size, win_shift, n_fft=None, win_funct='hammin
            Shift between consecutive windows (samples)   
        n_fft :
            Number of elements utilized to perform FFT    
-       win_funct :
+       win_function :
            Window applied to the data in 'x'           
        n_windows :
            Number of ST windows
@@ -519,7 +685,7 @@ def strfft_spectrogram(x, fs, win_size, win_shift, n_fft=None, win_funct='hammin
     for i_window in range(0, n_windows):
         # ith epoch of the signal or signals
         x_epoch = (x_epoched[:, :, i_window])
-        psd_struct = rfft_psd(x_epoch, fs, n_fft, win_funct, channel_names)
+        psd_struct = rfft_psd(x_epoch, fs, n_fft, win_function, channel_names)
     
         # initialize arrays for spectrogram data
         if i_window == 0:
@@ -552,13 +718,59 @@ def strfft_spectrogram(x, fs, win_size, win_shift, n_fft=None, win_funct='hammin
     spectrogram_data['win_size_samples'] = win_size
     spectrogram_data['win_shift_samples'] = win_shift
     spectrogram_data['n_fft'] = n_fft
-    spectrogram_data['win_function'] = win_funct
+    spectrogram_data['win_function'] = win_function
     spectrogram_data['n_windows'] = n_windows
     spectrogram_data['n_samples'] = n_samples    
     spectrogram_data['channel_names'] = channel_names
 
     return spectrogram_data
 
+def istrfft_spectrogram(spectrogram_data):
+    """Compute the inverse STFT spectrogram for one or a set of REAL signals.
+        
+    Parameters
+    ----------
+    spectrogram_data : Structure with STFT spectrogram data, created with strfft_spectrogram()
+
+    Returns
+    -------
+    x  : 1D array with shape (n_samples) or
+         2D array with shape (n_samples, n_channels)
+    x_epoched   = Segments form the signal or set of signals utilized to
+                  create the spectrogram in spectrogram_struct
+
+    """
+    # Load data from Spectrogram structure
+    rFFT_data = spectrogram_data['rFFT_spectrogram']
+    win_size = spectrogram_data['win_size_samples']
+    win_shift = spectrogram_data['win_shift_samples']
+    
+    # Generate psd_struct, to use irfft_psd()
+    psd_struct = {}
+    psd_struct['fs'] = spectrogram_data['fs']
+    psd_struct['channel_names'] = spectrogram_data['channel_names']
+    psd_struct['freq_axis'] = spectrogram_data['freq_axis']
+    psd_struct['win_function'] = spectrogram_data['win_function']
+    psd_struct['n_samples'] = win_size
+    
+    # Initialize rFFT_slice and x_epoched variables
+    (n_windows, n_freqs, n_channels) =  rFFT_data.shape
+    rfft_slide = np.zeros((n_freqs, n_channels))
+    x_epoched = np.zeros((win_size, n_channels, n_windows))
+    
+    for i_window in range(n_windows):
+        # rFFT slice from spectrogram
+        rfft_slide = rFFT_data[i_window, :, :]
+        # Generate psd_struct, to use irfft_psd()
+        psd_struct['rFFT'] = rfft_slide 
+        # ifft_psd from the rFFT data recovers the signal or set of signals 'x'
+        x_tmp = irfft_psd(psd_struct)
+        x_epoched[:, :, i_window] = x_tmp
+
+    # Merge epoched data
+    x = iepoching(x_epoched, win_shift);
+    
+    return x, x_epoched
 
 def wavelet_spectrogram(x, fs, n_cycles=6, freq_vct=None, channel_names=None):
     """Compute the Spectrogram using the Complex Morlet wavelet for one or a set of REAL signals 'x'. 
@@ -658,7 +870,40 @@ def wavelet_spectrogram(x, fs, n_cycles=6, freq_vct=None, channel_names=None):
 
     return spectrogram_data
 
-def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None, win_funct_y='hamming', fft_factor_x=None, win_funct_x='hamming', channel_names=None):
+def iwavelet_spectrogram(spectrogram_data):
+    """ Compute the inverse CWT Spectrogram for one or a set of REAL signals.
+        
+    Parameters
+    ----------
+    spectrogram_data : Structure with CWT Spectrogram data, created with wavelet_spectrogram()
+
+    Returns
+    -------
+    x  : 1D array with shape (n_samples) or
+         2D array with shape (n_samples, n_channels)
+    x_epoched   = Segments form the signal or set of signals utilized to
+                  create the spectrogram in spectrogram_struct
+
+    """
+    
+    # compute the scaling factor for each wavelet kernel
+    s = spectrogram_data['n_cycles'] / ( 2 * np.pi * spectrogram_data['freq_axis'])
+    A = 1. / ((s**2) * np.pi) ** (1./4)
+
+
+    x_tmp = np.real(spectrogram_data['wavelet_coefficients'])
+
+    # compute the mean across scaled "filtered" signals
+    for ix, a in enumerate(A):
+        x_tmp[:, ix, :] = x_tmp[:, ix, :] / a 
+    
+    x = np.mean(x_tmp, axis = 1) 
+    
+    #x = squeeze(mean( bsxfun(@rdivide, real(spectrogram_data.wavelet_coefficients) , A ), 2));
+
+    return x
+
+def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None, win_function_y='hamming', fft_factor_x=None, win_function_x='hamming', channel_names=None):
     """Compute the Modulation Spectrogram using the Complex Morlet wavelet for one or a set of REAL signals 'x'.
         
     Parameters
@@ -681,8 +926,6 @@ def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None,
         (Default 'Hamming')   
     n_fft : Number of samples to compute the FFT
         (Default = n_samples in array x)   
-    win_funct : Window function applied to the signal 
-        (Default 'Hamming')
     channel_names : Names of the signals
         (Default Signal-XX with XX 1, 2, ... n_channels) 
 
@@ -713,9 +956,9 @@ def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None,
            Number of elements utilized to perform the 1st FFT
        n_fft_x :
            Number of elements utilized to perform the 2nd FFT
-       win_funct_y :
+       win_function_y :
            Window to apply in the 1st rFFT            
-       win_funct_x :
+       win_function_x :
            Window to apply in the 2nd rFFT                      
        n_windows :
            Number of ST windows
@@ -749,7 +992,7 @@ def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None,
 
     
     # compute STFFT spectrogram
-    spectrogram_data = strfft_spectrogram(x, fs, win_size, win_shift, n_fft_y, win_funct_y, channel_names)
+    spectrogram_data = strfft_spectrogram(x, fs, win_size, win_shift, n_fft_y, win_function_y, channel_names)
     n_windows, n_freqs, n_channels = spectrogram_data['rFFT_spectrogram'].shape
     # Number of elements for the 2nd FFT
     n_fft_x =  fft_factor_x * n_windows
@@ -770,7 +1013,7 @@ def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None,
         spectrogram_1ch = np.sqrt(spectrogram_data['power_spectrogram'][:,:,i_channel]) 
 
         # compute 'rfft_psd' on each frequency timeseries
-        mod_psd_struct = rfft_psd(spectrogram_1ch, fs_mod, n_fft_x, win_funct_x, channel_names )
+        mod_psd_struct = rfft_psd(spectrogram_1ch, fs_mod, n_fft_x, win_function_x, channel_names )
     
         if i_channel == 0:
             # modulation frequency axis
@@ -805,8 +1048,8 @@ def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None,
     modulation_spectrogram_data['win_shift_samples'] = win_shift
     modulation_spectrogram_data['n_fft_y'] = n_fft_y
     modulation_spectrogram_data['n_fft_x'] = n_fft_y
-    modulation_spectrogram_data['win_funct_y'] = win_funct_y
-    modulation_spectrogram_data['win_funct_x'] = win_funct_x
+    modulation_spectrogram_data['win_function_y'] = win_function_y
+    modulation_spectrogram_data['win_function_x'] = win_function_x
     modulation_spectrogram_data['n_windows'] = n_windows 
     modulation_spectrogram_data['n_samples'] = spectrogram_data['n_samples'] 
     modulation_spectrogram_data['spectrogram_data'] = spectrogram_data
@@ -814,8 +1057,62 @@ def strfft_modulation_spectrogram(x, fs, win_size, win_shift, fft_factor_y=None,
     
     return modulation_spectrogram_data
 
+def istrfft_modulation_spectrogram(modulation_spectrogram_data):
+    """ Compute the inverse STFT-based modulation spectrogram for one or a set of REAL signals.
+         
+     Parameters
+     ----------
+     modulation_spectrogram_data : Structure with STFT-based modulation spectrogram data, 
+           created with strfft_modulation_spectrogram()
+ 
+     Returns
+     -------
+     x  : 1D array with shape (n_samples) or
+          2D array with shape (n_samples, n_channels)
+    
+    """
+    # Number of channels from Modspectrogram structure
+    n_channels = modulation_spectrogram_data['rFFT_modulation_spectrogram'].shape[2]
+    
+    # Prepare psd_tmp_data to perform irFFT on Modulation Spectogram
+    psd_tmp_data = {}
+    psd_tmp_data['freq_axis'] = modulation_spectrogram_data['freq_mod_axis']
+    psd_tmp_data['fs'] = modulation_spectrogram_data['fs_mod']
+    psd_tmp_data['win_function'] = modulation_spectrogram_data['win_function_x']
+    psd_tmp_data['n_samples'] = modulation_spectrogram_data['n_windows']
 
-def wavelet_modulation_spectrogram(x, fs, n_cycles=6, freq_vct=None, fft_factor_x=1, win_funct_x='hamming', channel_names=None):
+
+    for i_channel in range(n_channels):
+        # Slide with the rFFT coeffients of the 2nd FFT 
+        psd_tmp_data['rFFT'] = np.transpose(modulation_spectrogram_data['rFFT_modulation_spectrogram'][:,:,i_channel])   
+        # Recovers the Square Root of the Power Spectrogram
+        sqrt_pwr_spectrogram = irfft_psd(psd_tmp_data)
+        # Power Spectrogram
+        pwr_spectrogram = sqrt_pwr_spectrogram ** 2
+        # Scale Power Spectrogram by (n_windows * time_delta)
+        pwr_spectrogram = pwr_spectrogram * modulation_spectrogram_data['spectrogram_data']['n_windows'] * modulation_spectrogram_data['spectrogram_data']['time_delta']
+        # Scale Power Spectrogram by (freq_delta)
+        pwr_spectrogram = pwr_spectrogram * modulation_spectrogram_data['spectrogram_data']['freq_delta']
+        # Scale Power Spectrogram by the number of samples used
+        pwr_spectrogram = pwr_spectrogram / (1 / modulation_spectrogram_data['spectrogram_data']['n_fft'] ** 2)
+        # Divde by 2 all the elements except DC and the Nyquist point (in even case)  
+        pwr_spectrogram = pwr_spectrogram / 2
+        pwr_spectrogram[:, 0] = pwr_spectrogram[:, 0] * 2
+        if np.mod(modulation_spectrogram_data['spectrogram_data']['n_fft'], 2) == 1:
+            # NFFT was even, then 
+            pwr_spectrogram[:, -1] = pwr_spectrogram[:, -1] * 2
+        spectrogram_abs = np.sqrt(pwr_spectrogram)
+        # Recovers the Angle values of the Spectrogram
+        spectrogram_angle = np.angle(modulation_spectrogram_data['spectrogram_data']['rFFT_spectrogram'][:,:,i_channel])
+        # Creates the rFFT coefficients of the 1st FFTs
+        modulation_spectrogram_data['spectrogram_data']['rFFT_spectrogram'][:,:,i_channel] = spectrogram_abs * np.exp(1j * spectrogram_angle )   
+
+    # Recovers the origial signal or set of signals
+    x = istrfft_spectrogram(modulation_spectrogram_data['spectrogram_data'])[0]
+    
+    return x
+
+def wavelet_modulation_spectrogram(x, fs, n_cycles=6, freq_vct=None, fft_factor_x=1, win_function_x='hamming', channel_names=None):
     """Compute the Modulation Spectrogram using the Wavelet for one or a set of REAL signals 'x'.
         
     Parameters
@@ -856,7 +1153,7 @@ def wavelet_modulation_spectrogram(x, fs, n_cycles=6, freq_vct=None, fft_factor_
            Modulation-frequency step (Hz)
        n_fft_x :
            Number of elements utilized to perform the FFT
-       win_funct_x :
+       win_function_x :
            Window to apply in the 2nd rFFT                      
        n_samples :
            Number of samples of the signal or signals 'x'
@@ -929,12 +1226,60 @@ def wavelet_modulation_spectrogram(x, fs, n_cycles=6, freq_vct=None, fft_factor_
     modulation_spectrogram_data['freq_mod_axis'] = fmod_ax
     modulation_spectrogram_data['freq_mod_delta'] = fmod_delta
     modulation_spectrogram_data['n_fft_x'] = n_fft_x
-    modulation_spectrogram_data['win_funct_x'] = win_funct_x
+    modulation_spectrogram_data['win_function_x'] = win_function_x
     modulation_spectrogram_data['n_samples'] = spectrogram_data['n_samples'] 
     modulation_spectrogram_data['spectrogram_data'] = spectrogram_data
     modulation_spectrogram_data['channel_names'] = channel_names
     
     return modulation_spectrogram_data
+
+def iwavelet_modulation_spectrogram(modulation_spectrogram_data):
+    """ Compute the inverse CWT-based modulation spectrogram for one or a set of REAL signals.
+        
+    Parameters
+    ----------
+    modulation_spectrogram_data : Structure with CWT-based modulation spectrogram data, 
+          created with wavelet_modulation_spectrogram()
+
+    Returns
+    -------
+    x  : 1D array with shape (n_samples) or
+         2D array with shape (n_samples, n_channels)
+
+    """
+    # Number of channels from Modspectrogram structure
+    n_channels = modulation_spectrogram_data['rFFT_modulation_spectrogram'].shape[2]
+    
+    # Prepare psd_tmp_data to perform irFFT on Modulation Spectogram
+    psd_tmp_data = {}
+    psd_tmp_data['freq_axis'] = modulation_spectrogram_data['freq_mod_axis']
+    psd_tmp_data['fs'] = modulation_spectrogram_data['fs_mod']
+    psd_tmp_data['win_function'] = modulation_spectrogram_data['win_function_x']
+    psd_tmp_data['n_samples'] = modulation_spectrogram_data['n_samples']
+    
+        
+    for i_channel in range(n_channels):
+        # Slide with the rFFT coeffients of the 2nd FFT 
+        psd_tmp_data['rFFT'] = np.transpose(modulation_spectrogram_data['rFFT_modulation_spectrogram'][:,:,i_channel])   
+        # Recovers the Square Root of the Power Spectrogram
+        sqrt_pwr_spectrogram = irfft_psd(psd_tmp_data)
+        
+        # Recovers the Magnitude of the Wavelet Coefficents
+        pwr_spectrogram = sqrt_pwr_spectrogram ** 2
+        pwr_spectrogram = pwr_spectrogram * modulation_spectrogram_data['fs_mod'] *  modulation_spectrogram_data['n_samples']
+        pwr_spectrogram = pwr_spectrogram / 2
+        spectrogram_abs = np.sqrt(pwr_spectrogram)
+            
+        # Recovers the Angle values of the Spectrogram
+        spectrogram_angle = np.angle(modulation_spectrogram_data['spectrogram_data']['wavelet_coefficients'][:,:,i_channel])
+        
+        # Creates the rFFT coefficients of the 1st FFTs
+        modulation_spectrogram_data['spectrogram_data']['wavelet_coefficients'][:,:,i_channel] = spectrogram_abs * np.exp(1j * spectrogram_angle )   
+    
+    # Recovers the origial signal or set of signals
+    x = iwavelet_spectrogram(modulation_spectrogram_data['spectrogram_data'])
+
+    return x
 
 def plot_spectrogram_data(spectrogram_data, ix=None, t_range=None, f_range=None, c_range=None, c_map='viridis'):
     """ Plot the Power Spectrogram related to the `spectrogram_data`
@@ -1215,16 +1560,15 @@ def plot_signal(x, fs, name=None):
     Parameters
     ----------
     x : 
-        1D Signal as column or row Vector 
+        1D or 2D Signals as column vectors 
     fs :
         Sampling frequency in Hz
     name :
         Name of the signal (Default 'Signal-01')
     """
-    x = np.ravel(x)
     
     # Create time vector
-    time_vector = np.arange(len(x))/fs
+    time_vector = np.arange(x.shape[0])/fs
     
     plt.plot(time_vector,x)
     plt.xlabel('time (s)')
