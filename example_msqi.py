@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-%% Example 06
+%% Example MSQI
 % This example shows the use of the amplitude modulation analysis toolkit
 % to compute the Modulation Spectrum-Based ECG Quality Index (MSQI) as a 
 % blind metric to measure the signal-to-noise (SNR) ration in ECG signals
