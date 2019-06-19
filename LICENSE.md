@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2017 Raymundo Cassani and João Monteio
+Copyright (c) 2017 Raymundo Cassani, Isabela Albuquerque and João Monteio
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
