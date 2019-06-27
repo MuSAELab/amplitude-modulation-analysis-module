@@ -62,14 +62,14 @@ if __name__ == "__main__":
     power_X = float( (1 / n**2) * sum(np.abs(X)**2))
     
     # Power using its PSD from rFFT
-    psd_rfft_r = ama.rfft_psd(x, fs, win_funct = 'boxcar')
+    psd_rfft_r = ama.rfft_psd(x, fs, win_function = 'boxcar')
     f_step = psd_rfft_r['freq_delta']
     power_psd_rfft_x_rw = f_step * sum(psd_rfft_r['PSD'])[0]
     plt.figure()
     ama.plot_psd_data(psd_rfft_r)
     
     # Power using its PSD from rFFT
-    psd_rfft_b = ama.rfft_psd(x, fs, win_funct = 'blackmanharris')
+    psd_rfft_b = ama.rfft_psd(x, fs, win_function = 'blackmanharris')
     f_step = psd_rfft_r['freq_delta']
     power_psd_rfft_x_bh = f_step * sum(psd_rfft_r['PSD'])[0]
     plt.figure()
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # Power from STFFT Spectrogram (Hamming window)
     w_size =  1 * fs
     w_shift = 0.5 * w_size
-    rfft_spect_h = ama.strfft_spectrogram(x, fs, w_size, w_shift, win_funct = 'hamming' )
+    rfft_spect_h = ama.strfft_spectrogram(x, fs, w_size, w_shift, win_function = 'hamming' )
     power_spect_h = sum(sum(rfft_spect_h['power_spectrogram']))[0] * rfft_spect_h['freq_delta'] * rfft_spect_h['time_delta']
     plt.figure()
     ama.plot_spectrogram_data(rfft_spect_h)
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     # Power from STFFT Spectrogram (Rectangular window)
     w_size =  1 * fs
     w_shift = 0.5 * w_size
-    rfft_spect_r = ama.strfft_spectrogram(x, fs, w_size, w_shift, win_funct = 'boxcar')
+    rfft_spect_r = ama.strfft_spectrogram(x, fs, w_size, w_shift, win_function = 'boxcar')
     power_spect_r = sum(sum(rfft_spect_r['power_spectrogram']))[0] * rfft_spect_r['freq_delta'] * rfft_spect_r['time_delta']
     plt.figure()
     ama.plot_spectrogram_data(rfft_spect_r)
@@ -106,13 +106,13 @@ if __name__ == "__main__":
     # Power from Modulation Spectrogram STFFT
     w_size =  1 * fs
     w_shift = 0.5 * w_size
-    rfft_mod_b = ama.strfft_modulation_spectrogram(x, fs, w_size, w_shift, win_funct_y = 'boxcar', win_funct_x = 'boxcar')
+    rfft_mod_b = ama.strfft_modulation_spectrogram(x, fs, w_size, w_shift, win_function_y = 'boxcar', win_function_x = 'boxcar')
     power_mod = sum(sum(rfft_mod_b['power_modulation_spectrogram']))[0] * rfft_mod_b['freq_delta'] * rfft_mod_b['freq_mod_delta']
     plt.figure()
     ama.plot_modulation_spectrogram_data(rfft_mod_b)
     
     # Power from Modulation Spectrogram Wavelet
-    wav_mod_6 = ama.wavelet_modulation_spectrogram(x, fs, 6, win_funct_x = 'boxcar')
+    wav_mod_6 = ama.wavelet_modulation_spectrogram(x, fs, 6, win_function_x = 'boxcar')
     power_mod_w = sum(sum(wav_mod_6['power_modulation_spectrogram']))[0] * wav_mod_6['freq_delta'] * wav_mod_6['freq_mod_delta']
     plt.figure()
     ama.plot_modulation_spectrogram_data(wav_mod_6)
