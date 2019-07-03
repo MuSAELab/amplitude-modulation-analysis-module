@@ -1098,7 +1098,7 @@ def istrfft_modulation_spectrogram(modulation_spectrogram_data):
         # Divde by 2 all the elements except DC and the Nyquist point (in even case)  
         pwr_spectrogram = pwr_spectrogram / 2
         pwr_spectrogram[:, 0] = pwr_spectrogram[:, 0] * 2
-        if np.mod(modulation_spectrogram_data['spectrogram_data']['n_fft'], 2) == 1:
+        if np.mod(modulation_spectrogram_data['spectrogram_data']['n_fft'], 2) == 0:
             # NFFT was even, then 
             pwr_spectrogram[:, -1] = pwr_spectrogram[:, -1] * 2
         spectrogram_abs = np.sqrt(pwr_spectrogram)
