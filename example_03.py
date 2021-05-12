@@ -142,7 +142,6 @@ if __name__ == "__main__":
     plt.figure()
     plt.title('Total Power per Epoch, based on Spectrogram')
     plt.plot(pwr_spectrogram_wavelet_a, label = 'Wavelet Spectrogram A')
-    plt.hold
     plt.plot(pwr_spectrogram_wavelet_b, label = 'Wavelet Spectrogram B')
     plt.legend()
     print('Mean Power Spectrogram A: ' + str(np.mean(pwr_spectrogram_wavelet_a)) )
@@ -152,7 +151,6 @@ if __name__ == "__main__":
     plt.figure()
     plt.title('Total Power per Epoch, based on Modulation Spectrogram')
     plt.plot(pwr_modulation_spectrogram_wavelet_a, label = 'Wavelet Modulation Spectrogram A')
-    plt.hold
     plt.plot(pwr_modulation_spectrogram_wavelet_b, label = 'Wavelet Modulation Spectrogram B')
     plt.legend()
     print('Mean Power Modulation Spectrogram A: ' + str(np.mean(pwr_modulation_spectrogram_wavelet_a)) )
